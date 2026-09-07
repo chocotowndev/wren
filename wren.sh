@@ -50,16 +50,11 @@ if [[ $1 == "help" ]]; then
     for server in ${servers[@]}; do
         echo -e "${W}$PREFIX${R}    $server"
     done
-elif [[ $1 == "spawn" ]]; then
-    echo -e "${W}$PREFIX${R} Spawning $2..."
+elif [[ $1 == "start" ]]; then
+    echo -e "${W}$PREFIX${R} Starting $2..."
     sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 new-session -d -s "$2" -c "$GAME_DIR/$2" "sh start.sh"
     sudo chgrp admin /tmp/tmux_$2
     sudo chmod 770 /tmp/tmux_$2
-
-elif [[ $1 == "start" ]]; then
-    echo -e "${W}$PREFIX${R} Starting $2..."
-    sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "cd $GAME_DIR/$2" C-m
-    sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "sh start.sh" C-m
 
 elif [[ $1 == "stop" ]]; then
     echo -e "${W}$PREFIX${R} Stopping $2..."
@@ -82,16 +77,14 @@ elif [[ $1 == "kill" ]]; then
     fi
 
 elif [[ $1 == "list" ]]; then
-    echo -e "${W}$WREN_PREFIX${R} Here's all the containers."
+    echo -e "${W}$PREFIX${R} Here's all the containers."
 
     for server in "${servers[@]}"; do
         socket="/tmp/tmux_$server"
 
         if [[ -S "$socket" ]]; then
-            echo -e "${S}$WREN_PREFIX${R} $server is running:"
+            echo -e "${S}$PREFIX${R} $server is running:"
             sudo -u "$WREN_USER" tmux -S "$socket" list-sessions
-        else
-            echo -e "${W}$WREN_PREFIX${R} $server is not running."
         fi
     done
 
