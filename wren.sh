@@ -18,6 +18,11 @@ mandatory_vars () {
     G="\033[1;37m"
 }
 
+print_config () {
+    echo -e "${W}$PREFIX${R}     WREN_USER='$(whoami)'"
+    echo -e "${W}$PREFIX${R}     SERVER_DIR='$SERVER_DIR'"
+}
+
 
 ##
 # Config
@@ -31,9 +36,8 @@ if [[ -f "$CONFIG_FILE" ]]; then
     mandatory_vars
 else
     mandatory_vars
-    echo -e "${PREFIX} Config file not found, using defaults which are:\n"
-    echo -e "${PREFIX} The user currently being used is '$(whoami)'"
-    echo -e "${PREFIX} The server directory currently being used is '$SERVER_DIR'"
+    echo -e "${PREFIX} Config file not found, using defaults which are:"
+    print_config
 fi
 
 
@@ -50,6 +54,7 @@ if [[ $1 == "help" ]]; then
     echo -e "${W}$PREFIX${R} (c) 2023-2026"
     echo -e "${W}$PREFIX${R} ${J}Commands:${R}"
     echo -e "${W}$PREFIX${R}    help    ${G}             ${R}       Show this help menu"
+    echo -e "${W}$PREFIX${R}    config  ${G}             ${R}       Show your configuration"
     echo -e "${W}$PREFIX${R}    list    ${G}             ${R}       Show all running containers"
     echo -e "${W}$PREFIX${R}    start   ${G}(server name)${R}       Run start script of server"
     echo -e "${W}$PREFIX${R}    restart ${G}(server name)${R}       Run restart script of server"
@@ -87,8 +92,12 @@ elif [[ $1 == "kill" ]]; then
         echo -e "${W}${PREFIX}${R} Something went wrong. Did not kill $2."
     fi
 
+elif [[ $1 == "config" ]]; then
+    echo -e "${W}$PREFIX${R} Here's your current configuration:"
+    print_config
+
 elif [[ $1 == "list" ]]; then
-    echo -e "${W}$PREFIX${R} Here's all the containers."
+    echo -e "${W}$PREFIX${R} Here's all the containers:"
 
     for server in "${servers[@]}"; do
         socket="/tmp/tmux_$server"
