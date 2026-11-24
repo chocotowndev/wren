@@ -1,64 +1,86 @@
 #!/bin/bash
-# wren launcher
-PREFIX="[wren]"
-VERSION="2.0"
+# Wren Launcher
 
-# Colours
-E="\033[31m"
-W="\033[33m"
-R="\033[0m"
-S="\033[32m"
-B="\033[1m"
-J='\033[1;34m'
-G="\033[1;37m"
+##
+# Mandatory Variables
+##
+# done this way so these things can't be overdone by the config file if present
+mandatory_vars () {
+    PREFIX="[wren]"
+    VERSION="3.0"
+
+    E="\033[31m"
+    W="\033[33m"
+    R="\033[0m"
+    S="\033[32m"
+    B="\033[1m"
+    J='\033[1;34m'
+    G="\033[1;37m"
+}
 
 
-# directory for servers
-wren_USER="wren"
-SERVER_DIR=$(getent passwd "$wren_USER" | cut -d: -f6)
-declare -a servers=("magnolia")
+##
+# Config
+##
+CONFIG_FILE="$HOME/.config/wren/wren.conf"
+SERVER_DIR="/srv"
+WREN_USER="$(whoami)"
+
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+    mandatory_vars
+else
+    mandatory_vars
+    echo -e "${PREFIX} Config file not found, using defaults which are:\n"
+    echo -e "${PREFIX} The user currently being used is '$(whoami)'"
+    echo -e "${PREFIX} The server directory currently being used is '$SERVER_DIR'"
+fi
+
+
+##
+# Commands
+##
+if [[ ! -d "$SERVER_DIR" ]]; then
+    echo -e "${E}${PREFIX}${R} Your server directory ($SERVER_DIR) does not exist"
+    exit 1
+fi
 
 if [[ $1 == "help" ]]; then
-    echo -e "${W}$PREFIX${R} ${J}Wren launcher v${VERSION}${R}"
-    echo -e "${W}$PREFIX${R} (c) 2023-2026 orchidtowny"
-    echo -e "${W}$PREFIX${R} ${J}commands:${R}"
+    echo -e "${W}$PREFIX${R} ${J}Wren Launcher v${VERSION}${R}"
+    echo -e "${W}$PREFIX${R} (c) 2023-2026"
+    echo -e "${W}$PREFIX${R} ${J}Commands:${R}"
     echo -e "${W}$PREFIX${R}    help    ${G}             ${R}       Show this help menu"
     echo -e "${W}$PREFIX${R}    list    ${G}             ${R}       Show all running containers"
-    echo -e "${W}$PREFIX${R}    spawn   ${G}(server name)${R}       Run start script of server in new container"
-    echo -e "${W}$PREFIX${R}    start   ${G}(server name)${R}       Run start script of server in current container"
+    echo -e "${W}$PREFIX${R}    start   ${G}(server name)${R}       Run start script of server"
     echo -e "${W}$PREFIX${R}    restart ${G}(server name)${R}       Run restart script of server"
     echo -e "${W}$PREFIX${R}    stop    ${G}(server name)${R}       Run stop script of server"
     echo -e "${W}$PREFIX${R}    kill    ${G}(server name)${R}       Kill container of server"
     echo -e "${W}$PREFIX${R}    console ${G}(server name)${R}       Open to console of server"
-    echo -e "${W}$PREFIX${R} ${J}available servers:${R}"
+    echo -e "${W}$PREFIX${R} ${J}Available servers:${R}"
     for server in ${servers[@]}; do
         echo -e "${W}$PREFIX${R}    $server"
     done
-elif [[ $1 == "spawn" ]]; then
-    echo -e "${W}$PREFIX${R} Spawning $2..."
-    sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 new-session -d -s "$2" -c "$SERVER_DIR/$2" "sh start.sh"
-    sudo chgrp admin /tmp/tmux_$2
-    sudo chmod 770 /tmp/tmux_$2
 
 elif [[ $1 == "start" ]]; then
     echo -e "${W}$PREFIX${R} Starting $2..."
-    sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "cd $SERVER_DIR/$2" C-m
-    sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "sh start.sh" C-m
+    sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 new-session -d -s "$2" -c "$GAME_DIR/$2" "sh start.sh"
+    sudo chgrp admin /tmp/tmux_$2
+    sudo chmod 770 /tmp/tmux_$2
 
 elif [[ $1 == "stop" ]]; then
     echo -e "${W}$PREFIX${R} Stopping $2..."
-    sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "stop" C-m
+    sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "stop" C-m
 
 elif [[ $1 == "restart" ]]; then
     echo -e "${W}$PREFIX${R} Restarting $2..."
-    sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "restart" C-m
+    sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 send-keys -t "$2" "restart" C-m
 
 elif [[ $1 == "kill" ]]; then
-    read -r -p "$(echo -e "${W}${PREFIX}${R} you're about to ${E}${B}kill${R} a process ($2). ${E}${B}this could lead to data corruption${R}, would you like to continue? [y/N] ")" ans
+    read -r -p "$(echo -e "${W}${PREFIX}${R} You're about to ${E}${B}kill${R} a process ($2). ${E}${B}This could lead to data corruption${R}, would you like to continue? [y/N] ")" ans
 
     if [[ "${ans,,}" == "y" ]]; then
         echo -e "${W}${PREFIX}${R} Killing $2..."
-        sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 kill-session -t "$2"
+        sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 kill-session -t "$2"
     elif [[ "${ans,,}" == "n" ]]; then
         echo -e "${W}${PREFIX}${R} Did not kill $2..."
     else 
@@ -66,30 +88,30 @@ elif [[ $1 == "kill" ]]; then
     fi
 
 elif [[ $1 == "list" ]]; then
-    echo -e "${W}$WREN_PREFIX${R} Here's all the containers."
+    echo -e "${W}$PREFIX${R} Here's all the containers."
 
     for server in "${servers[@]}"; do
         socket="/tmp/tmux_$server"
 
         if [[ -S "$socket" ]]; then
-            echo -e "${S}$WREN_PREFIX${R} $server is running:"
+            echo -e "${S}$PREFIX${R} $server is running:"
             sudo -u "$WREN_USER" tmux -S "$socket" list-sessions
         else
-            echo -e "${W}$WREN_PREFIX${R} $server is not running."
+            echo -e "${W}$PREFIX${R} $server is not running."
         fi
     done
 
 elif [[ $1 == "console" ]]; then
-    echo -e "${W}$PREFIX${R} opening console of $2"
+    echo -e "${W}$PREFIX${R} Opening console of $2..."
     echo -e "${W}$PREFIX${R} "
-    echo -e "${E}$PREFIX${R} ${E}!! IMPORTWNT !!"
-    echo -e "${W}$PREFIX${R} do not use ${H}ctrl + c${R}."
-    echo -e "${W}$PREFIX${R} to exit a container always use ${H}ctrl + b${R} then ${H}d${R}."
-    echo -e "${W}$PREFIX${R} to copy to clipboard always use ${H}ctrl + shift + c${R}."
+    echo -e "${E}$PREFIX${R} ${E}!! IMPORTANT !!"
+    echo -e "${W}$PREFIX${R} Do not use ${H}ctrl + c${R}."
+    echo -e "${W}$PREFIX${R} To exit a container use ${H}ctrl + b${R} then ${H}d${R}."
+    echo -e "${W}$PREFIX${R} To copy to clipboard use ${H}ctrl + shift + c${R}."
     echo -e "${W}$PREFIX${R} "
-    read -r -p "$(echo -e ${W}$PREFIX${R}" "${G}"press enter to continue")"
+    read -r -p "$(echo -e ${W}$PREFIX${R}" "${G}"Press enter to continue")"
 
-    sudo -u "$wren_USER" tmux -S /tmp/tmux_$2 attach -t "$2"
+    sudo -u "$WREN_USER" tmux -S /tmp/tmux_$2 attach -t "$2"
 
 else
     echo -e "${W}$PREFIX${R} Unknown command. See ${S}$0 help${R} for more"
